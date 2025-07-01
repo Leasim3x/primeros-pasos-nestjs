@@ -1,23 +1,31 @@
 import { Module } from '@nestjs/common';
-
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Usuario } from './usuarios/usuario.entity';
+
 import { UsuariosModule } from './usuarios/usuarios.module';
 
 @Module({
   // Configuración del TypeORM con el PostgreSQL
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'invitado',
-      password: 'pass',
-      database: 'crud_nest_usuarios',
-      entities: [Usuario],
-      synchronize: true,  // Solo para el desarrollo
+    ConfigModule.forRoot({ isGlobal: true }), // Carga el .env
+
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const dbUrl = config.get<string>('DATABASE_URL');
+        console.log('📦 DATABASE_URL:', dbUrl); // <--- Agrega esto
+        return {
+          type: 'postgres',
+          url: dbUrl,
+          autoLoadEntities: true,
+          ssl: { rejectUnauthorized: false },
+          synchronize: true,
+        };
+      },
     }),
     UsuariosModule,
-  ],
+  ]
 })
-export class AppModule {}
+
+export class AppModule { }
